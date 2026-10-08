@@ -1,0 +1,44 @@
+[
+  {
+    "case": "OK SELECT",
+    "sql": "SELECT id, email FROM users LIMIT 10",
+    "status": "ALLOWED",
+    "detail": null
+  },
+  {
+    "case": "Blocked table",
+    "sql": "SELECT * FROM user_sessions",
+    "status": "REJECTED",
+    "detail": {
+      "code": "security_violation",
+      "message": "Access to table 'user_sessions' is not allowed"
+    }
+  },
+  {
+    "case": "Blocked column",
+    "sql": "SELECT password_hash FROM users",
+    "status": "REJECTED",
+    "detail": {
+      "code": "security_violation",
+      "message": "Access to column 'users.password_hash' is not allowed"
+    }
+  },
+  {
+    "case": "EXPLAIN rejected",
+    "sql": "EXPLAIN SELECT * FROM users",
+    "status": "REJECTED",
+    "detail": {
+      "code": "security_violation",
+      "message": "EXPLAIN statements are not allowed"
+    }
+  },
+  {
+    "case": "DELETE rejected",
+    "sql": "DELETE FROM users",
+    "status": "REJECTED",
+    "detail": {
+      "code": "security_violation",
+      "message": "DELETE statements are not allowed. Write operations are disabled (set SECURITY_ALLOW_WRITE_OPERATIONS=true to enable)."
+    }
+  }
+]

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>汤豪 · OpsQuery 安全运营台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #12100e;
+      --panel: #1c1814;
+      --panel2: #261f19;
+      --line: #3d3228;
+      --amber: #f59e0b;
+      --amber-dim: #d97706;
+      --warn: #fb923c;
+      --text: #f5ebe0;
+      --muted: #a89886;
+      --ok: #86efac;
+      --ok-bg: #14532d;
+      --err: #fda4af;
+      --err-bg: #4c0519;
+      --mono: "IBM Plex Mono", Consolas, monospace;
+      --sans: "IBM Plex Sans", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgba(245,158,11,0.12), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 90% 100%, rgba(234,88,12,0.1), transparent 45%),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 3px),
+        var(--ink);
+      font-size: 14px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* —— 顶部运营条 —— */
+    .ops-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #221c16 0%, var(--panel) 100%);
+    }
+    .brand-block { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .brand-block h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--amber);
+      text-transform: uppercase;
+    }
+    .brand-block .who {
+      font-size: 12px;
+      color: var(--muted);
+      border-left: 2px solid var(--amber-dim);
+      padding-left: 10px;
+    }
+    .ops-links { display: flex; gap: 10px; align-items: center; }
+    .ops-links a {
+      color: var(--warn);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-decoration: none;
+      border: 1px solid var(--line);
+      padding: 5px 10px;
+      background: var(--panel2);
+    }
+    .ops-links a:hover { border-color: var(--amber); color: var(--amber); }
+    #clockText { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-right: 8px; }
+
+    /* —— 主工作区：上问下答 —— */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 18px 28px;
+      gap: 18px;
+    }
+
+    .command-deck {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 18px 18px 14px;
+      position: relative;
+    }
+    .command-deck::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, var(--amber), var(--warn));
+    }
+    .deck-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--amber);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .deck-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 720px) {
+      .deck-row { grid-template-columns: 1fr; }
+    }
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-family: var(--mono);
+    }
+    select, textarea {
+      width: 100%;
+      background: var(--ink);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 9px 11px;
+      font-size: 13px;
+      font-family: inherit;
+      border-radius: 0;
+    }
+    select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--amber);
+      box-shadow: 0 0 0 1px var(--amber);
+    }
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    .ask-wrap { margin-bottom: 12px; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-fire {
+      background: var(--amber);
+      color: #1a1208;
+      border: none;
+      padding: 10px 22px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      font-family: var(--sans);
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+    }
+    .btn-fire:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-fire:hover:not(:disabled) { background: #fbbf24; }
+    .btn-scan {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      padding: 9px 14px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+    .btn-scan:hover { border-color: var(--warn); color: var(--warn); }
+
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--line);
+    }
+    .chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: var(--ink);
+    }
+    .chip.live { border-color: #166534; color: var(--ok); }
+    .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .dot.off { background: var(--err); }
+
+    /* 芯片式快捷场景 */
+    .preset-rail {
+      margin-top: 14px;
+    }
+    .preset-rail h3 {
+      font-size: 10px;
+      font-family: var(--mono);
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 900px) {
+      .preset-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .preset-grid .field { margin: 0; }
+    .preset-grid select {
+      font-size: 11px;
+      padding: 7px 8px;
+      border-color: #4a3b2e;
+      background: var(--panel2);
+    }
+
+    /* —— 结果区：Tab —— */
+    .telemetry {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      min-height: 360px;
+    }
+    .tele-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel2);
+    }
+    .tabs { display: flex; }
+    .tab {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 12px 16px;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-right: 1px solid var(--line);
+      letter-spacing: 0.06em;
+    }
+    .tab.active {
+      color: var(--amber);
+      background: var(--panel);
+      box-shadow: inset 0 -2px 0 var(--amber);
+    }
+    .badge {
+      align-self: center;
+      margin-right: 14px;
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      letter-spacing: 0.08em;
+    }
+    .badge.idle { color: var(--muted); }
+    .badge.ok { color: var(--ok); border-color: #166534; background: var(--ok-bg); }
+    .badge.bad { color: var(--err); border-color: #9f1239; background: var(--err-bg); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: 1px solid var(--line);
+    }
+    .metrics[hidden] { display: none; }
+    .metric {
+      padding: 10px 14px;
+      border-right: 1px solid var(--line);
+      text-align: left;
+    }
+    .metric:last-child { border-right: none; }
+    .metric span {
+      display: block;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      letter-spacing: 0.08em;
+    }
+    .metric strong {
+      font-size: 22px;
+      color: var(--amber);
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+
+    .pane {
+      display: none;
+      padding: 14px;
+      flex: 1;
+      overflow: auto;
+    }
+    .pane.active { display: block; }
+    .code {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.55;
+      color: #fcd34d;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: var(--ink);
+      border: 1px solid var(--line);
+      padding: 14px;
+      min-height: 120px;
+    }
+    .code.muted { color: #c4b5a5; }
+    .table-box {
+      overflow: auto;
+      max-height: 280px;
+      border: 1px solid var(--line);
+    }
+    .table-box table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .table-box th {
+      background: #2a221a;
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      padding: 8px 10px;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .table-box td {
+      padding: 7px 10px;
+      border-top: 1px solid #2a221a;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+    .table-box tr:nth-child(even) td { background: rgba(245,158,11,0.04); }
+    .empty, .err-msg {
+      padding: 36px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    .err-msg {
+      color: var(--err);
+      background: var(--err-bg);
+      border: 1px solid #9f1239;
+    }
+
+    .foot {
+      text-align: center;
+      padding: 10px;
+      font-size: 11px;
+      color: #6b5c4d;
+      font-family: var(--mono);
+      border-top: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body>
+  <header class="ops-bar">
+    <div class="brand-block">
+      <h1>OpsQuery</h1>
+      <span class="who">汤豪 · 安全运营自然语言查询台</span>
+    </div>
+    <div class="ops-links">
+      <span id="clockText"></span>
+      <a href="/health" target="_blank">/health</a>
+      <a href="http://127.0.0.1:9090/metrics" target="_blank">/metrics</a>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <section class="command-deck">
+      <div class="deck-label">// command deck · 下发查询</div>
+      <div class="deck-row">
+        <div class="field">
+          <label for="database">TARGET_DB</label>
+          <select id="database"></select>
+        </div>
+        <div class="field">
+          <label for="returnType">RETURN_MODE</label>
+          <select id="returnType">
+            <option value="result">执行并回传结果</option>
+            <option value="sql">仅产出 SQL</option>
+          </select>
+        </div>
+      </div>
+      <div class="field ask-wrap">
+        <label for="question">NL_DIRECTIVE</label>
+        <textarea id="question" placeholder="用自然语言描述：例如「未关闭告警有多少？」"></textarea>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-fire" id="runBtn">FIRE QUERY</button>
+        <button type="button" class="btn-scan" id="healthBtn">SCAN LINK</button>
+      </div>
+      <div class="status-strip" id="statusLine">
+        <span class="chip live"><span class="dot" id="statusDot"></span><span id="statusText">握手中…</span></span>
+      </div>
+
+      <div class="preset-rail">
+        <h3>场景芯片 · 一键填入</h3>
+        <div class="preset-grid">
+          <div class="field">
+            <label for="presetSecOps">安运</label>
+            <select id="presetSecOps">
+              <option value="">—</option>
+              <option value="ops_alerts">未关闭告警</option>
+              <option value="ops_critical">高危告警</option>
+              <option value="ops_incidents">处理中事件</option>
+              <option value="ops_vuln">未修复漏洞</option>
+              <option value="ops_assets">资产统计</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="presetCrm">CRM</label>
+            <select id="presetCrm">
+              <option value="">—</option>
+              <option value="crm_orgs">组织数</option>
+              <option value="crm_leads">线索数</option>
+              <option value="crm_deals">商机数</option>
+              <option value="crm_tickets">未关闭工单</option>
+              <option value="crm_tasks">高优先级任务</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="presetEcom">电商</label>
+            <select id="presetEcom">
+              <option value="">—</option>
+              <option value="ecom_products">商品总数</option>
+              <option value="ecom_orders">订单总数</option>
+              <option value="ecom_brands">品牌列表</option>
+              <option value="ecom_top">高价商品 Top5</option>
+              <option value="ecom_pending">待处理订单</option>
+              <option value="ecom_reviews">高评分商品</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="presetHosp">医院</label>
+            <select id="presetHosp">
+              <option value="">—</option>
+              <option value="hosp_patients">患者总数</option>
+              <option value="hosp_appts">今日预约</option>
+              <option value="hosp_doctors">科室医生数</option>
+              <option value="hosp_bill">已付账单</option>
+              <option value="hosp_admit">在院患者</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="presetSec">ACL 测试</label>
+            <select id="presetSec">
+              <option value="">—</option>
+              <option value="sec_sessions">拦 user_sessions</option>
+              <option value="sec_audit">拦 audit_logs</option>
+              <option value="sec_apikeys">拦 api_keys</option>
+              <option value="sec_password">拦 password_hash</option>
+              <option value="sec_explain">拦 EXPLAIN</option>
+              <option value="sec_delete">拦 DELETE</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="telemetry">
+      <div class="tele-head">
+        <div class="tabs">
+          <button type="button" class="tab active" data-pane="paneSql">SQL</button>
+          <button type="button" class="tab" data-pane="paneTable">DATASET</button>
+          <button type="button" class="tab" data-pane="paneJson">JSON</button>
+        </div>
+        <span class="badge idle" id="resultBadge">STANDBY</span>
+      </div>
+      <div class="metrics" id="metaBox" hidden>
+        <div class="metric"><span>CONFIDENCE</span><strong id="metaConfidence">-</strong></div>
+        <div class="metric"><span>LATENCY_MS</span><strong id="metaTime">-</strong></div>
+        <div class="metric"><span>ROWS</span><strong id="metaRows">-</strong></div>
+      </div>
+      <div class="pane active" id="paneSql">
+        <div class="code" id="sqlBox">awaiting directive…</div>
+      </div>
+      <div class="pane" id="paneTable">
+        <div class="table-box" id="tableBox"><div class="empty">FIRE QUERY 后显示结果集</div></div>
+      </div>
+      <div class="pane" id="paneJson">
+        <div class="code muted" id="jsonBox">{}</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="foot">OpsQuery · rule-chain ACL · 汤豪 2026</div>
+
+  <script>
+    const els = {
+      database: document.getElementById("database"),
+      returnType: document.getElementById("returnType"),
+      question: document.getElementById("question"),
+      runBtn: document.getElementById("runBtn"),
+      healthBtn: document.getElementById("healthBtn"),
+      statusDot: document.getElementById("statusDot"),
+      statusText: document.getElementById("statusText"),
+      statusLine: document.getElementById("statusLine"),
+      resultBadge: document.getElementById("resultBadge"),
+      sqlBox: document.getElementById("sqlBox"),
+      tableBox: document.getElementById("tableBox"),
+      jsonBox: document.getElementById("jsonBox"),
+      metaBox: document.getElementById("metaBox"),
+      metaConfidence: document.getElementById("metaConfidence"),
+      metaTime: document.getElementById("metaTime"),
+      metaRows: document.getElementById("metaRows"),
+      clockText: document.getElementById("clockText"),
+      presetEcom: document.getElementById("presetEcom"),
+      presetCrm: document.getElementById("presetCrm"),
+      presetHosp: document.getElementById("presetHosp"),
+      presetSecOps: document.getElementById("presetSecOps"),
+      presetSec: document.getElementById("presetSec"),
+    };
+
+    const presets = {
+      ecom_products: { database: "ecommerce_medium", returnType: "result", question: "有多少商品？" },
+      ecom_orders: { database: "ecommerce_medium", returnType: "result", question: "订单总数是多少？" },
+      ecom_brands: { database: "ecommerce_medium", returnType: "result", question: "列出所有品牌名称" },
+      ecom_top: { database: "ecommerce_medium", returnType: "result", question: "价格最高的 5 个商品是什么？" },
+      ecom_pending: { database: "ecommerce_medium", returnType: "result", question: "有多少待处理订单？" },
+      ecom_reviews: { database: "ecommerce_medium", returnType: "result", question: "平均评分最高的 5 个商品" },
+      crm_orgs: { database: "saas_crm_large", returnType: "result", question: "有多少个组织？" },
+      crm_leads: { database: "saas_crm_large", returnType: "result", question: "线索数量是多少？" },
+      crm_deals: { database: "saas_crm_large", returnType: "result", question: "商机总数是多少？" },
+      crm_tickets: { database: "saas_crm_large", returnType: "result", question: "有多少未关闭的工单？" },
+      crm_tasks: { database: "saas_crm_large", returnType: "result", question: "列出高优先级任务的标题和状态" },
+      hosp_patients: { database: "hospital_care", returnType: "result", question: "患者总数是多少？" },
+      hosp_appts: { database: "hospital_care", returnType: "result", question: "2026-03-26 有多少预约？" },
+      hosp_doctors: { database: "hospital_care", returnType: "result", question: "列出各科室医生数量" },
+      hosp_bill: { database: "hospital_care", returnType: "result", question: "已支付账单总金额是多少？" },
+      hosp_admit: { database: "hospital_care", returnType: "result", question: "当前在院患者有哪些？列出姓名和诊断" },
+      ops_alerts: { database: "security_ops", returnType: "result", question: "未关闭告警有多少？" },
+      ops_critical: { database: "security_ops", returnType: "result", question: "列出高危及以上告警标题和严重级别" },
+      ops_incidents: { database: "security_ops", returnType: "result", question: "处理中的安全事件有哪些？" },
+      ops_vuln: { database: "security_ops", returnType: "result", question: "未修复漏洞数量是多少？" },
+      ops_assets: { database: "security_ops", returnType: "result", question: "各组织资产数量统计" },
+      sec_sessions: { database: "security_ops", returnType: "sql", question: "查询 user_sessions 表的所有数据" },
+      sec_audit: { database: "saas_crm_large", returnType: "sql", question: "查询 audit_logs 审计日志全部记录" },
+      sec_apikeys: { database: "security_ops", returnType: "sql", question: "查询 api_keys 表里有哪些密钥" },
+      sec_password: { database: "ecommerce_medium", returnType: "sql", question: "查询 users 表的 password_hash 字段" },
+      sec_explain: { database: "security_ops", returnType: "sql", question: "对 alerts 表执行 EXPLAIN SELECT * FROM alerts" },
+      sec_delete: { database: "security_ops", returnType: "sql", question: "删除所有安全告警记录" },
+    };
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(tab.dataset.pane).classList.add("active");
+      });
+    });
+
+    function tickClock() {
+      const now = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      els.clockText.textContent = `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())} Z+8`;
+    }
+    function setBusy(busy) {
+      els.runBtn.disabled = busy;
+      els.runBtn.textContent = busy ? "FIRING…" : "FIRE QUERY";
+    }
+    function escapeHtml(s) {
+      return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+    }
+    function formatCell(v) {
+      if (v === null || v === undefined) return "";
+      if (typeof v === "object") return JSON.stringify(v);
+      return String(v);
+    }
+    function renderTable(data) {
+      if (!data || !data.columns) { els.tableBox.innerHTML = '<div class="empty">NO DATA</div>'; return; }
+      if (!data.rows || !data.rows.length) { els.tableBox.innerHTML = '<div class="empty">0 ROWS</div>'; return; }
+      const thead = `<tr>${data.columns.map(c => `<th>${escapeHtml(c)}</th>`).join("")}</tr>`;
+      const tbody = data.rows.map(row => `<tr>${data.columns.map(c => `<td>${escapeHtml(formatCell(row[c]))}</td>`).join("")}</tr>`).join("");
+      els.tableBox.innerHTML = `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+    }
+    function showResult(payload) {
+      els.jsonBox.textContent = JSON.stringify(payload, null, 2);
+      els.sqlBox.textContent = payload.generated_sql || "—";
+      els.metaBox.hidden = false;
+      els.metaConfidence.textContent = payload.confidence ?? "-";
+      els.metaTime.textContent = payload.data?.execution_time_ms != null ? Number(payload.data.execution_time_ms).toFixed(1) : "-";
+      els.metaRows.textContent = payload.data?.row_count ?? "-";
+      if (payload.success) {
+        els.resultBadge.className = "badge ok";
+        els.resultBadge.textContent = "OK";
+        renderTable(payload.data);
+        document.querySelector('[data-pane="paneTable"]').click();
+      } else {
+        els.resultBadge.className = "badge bad";
+        els.resultBadge.textContent = payload.error?.code || "BLOCK";
+        els.tableBox.innerHTML = `<div class="err-msg">${escapeHtml(payload.error?.message || "未知错误")}</div>`;
+        document.querySelector('[data-pane="paneTable"]').click();
+      }
+    }
+    async function refreshHealth() {
+      const data = await (await fetch("/health")).json();
+      const ok = data.status === "ok";
+      els.statusDot.className = "dot " + (ok ? "on" : "off");
+      els.statusText.textContent = ok ? `LINK UP · ${data.db_host} · ${data.databases.length} DB` : "LINK DOWN";
+      [...els.statusLine.querySelectorAll("[data-dynamic]")].forEach((n) => n.remove());
+      (data.databases || []).forEach((db) => {
+        const t = document.createElement("span");
+        t.className = "chip";
+        t.dataset.dynamic = "1";
+        t.textContent = db;
+        els.statusLine.appendChild(t);
+      });
+      if (data.blocked_tables?.length) {
+        const t = document.createElement("span");
+        t.className = "chip";
+        t.dataset.dynamic = "1";
+        t.textContent = "ACL " + data.blocked_tables.join("|");
+        els.statusLine.appendChild(t);
+      }
+      const cur = els.database.value;
+      els.database.innerHTML = "";
+      (data.databases || []).forEach((db) => {
+        const o = document.createElement("option");
+        o.value = db;
+        o.textContent = db;
+        els.database.appendChild(o);
+      });
+      if ([...els.database.options].some((o) => o.value === cur)) els.database.value = cur;
+      else if (data.databases?.includes("security_ops")) els.database.value = "security_ops";
+      return data;
+    }
+    async function runQuery() {
+      if (!els.question.value.trim()) { els.question.focus(); return; }
+      setBusy(true);
+      els.resultBadge.className = "badge idle";
+      els.resultBadge.textContent = "RUNNING";
+      try {
+        const res = await fetch("/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: els.question.value.trim(),
+            database: els.database.value || null,
+            return_type: els.returnType.value,
+          }),
+        });
+        showResult(await res.json());
+      } catch (err) {
+        showResult({ success: false, error: { code: "client_error", message: String(err) }, confidence: 0 });
+      } finally {
+        setBusy(false);
+      }
+    }
+    function applyPreset(key, cur) {
+      if (!key) return;
+      const p = presets[key];
+      if (!p) return;
+      [els.presetEcom, els.presetCrm, els.presetHosp, els.presetSecOps, els.presetSec]
+        .forEach((s) => { if (s !== cur) s.value = ""; });
+      els.database.value = p.database;
+      els.returnType.value = p.returnType;
+      els.question.value = p.question;
+    }
+    els.presetEcom.addEventListener("change", () => applyPreset(els.presetEcom.value, els.presetEcom));
+    els.presetCrm.addEventListener("change", () => applyPreset(els.presetCrm.value, els.presetCrm));
+    els.presetHosp.addEventListener("change", () => applyPreset(els.presetHosp.value, els.presetHosp));
+    els.presetSecOps.addEventListener("change", () => applyPreset(els.presetSecOps.value, els.presetSecOps));
+    els.presetSec.addEventListener("change", () => applyPreset(els.presetSec.value, els.presetSec));
+    els.runBtn.addEventListener("click", runQuery);
+    els.healthBtn.addEventListener("click", () =>
+      refreshHealth().catch(() => {
+        els.statusDot.className = "dot off";
+        els.statusText.textContent = "LINK FAIL";
+      })
+    );
+    els.question.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") runQuery();
+    });
+    tickClock();
+    setInterval(tickClock, 1000);
+    refreshHealth().catch(() => {
+      els.statusDot.className = "dot off";
+      els.statusText.textContent = "启动 run_http_demo.py";
+    });
+  </script>
+</body>
+</html>
